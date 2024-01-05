@@ -33,16 +33,17 @@ func main() {
 		logger.Fatalf("--chaindata path can't be empty")
 	}
 
-	fmt.Println(rawdb.PreexistingDatabase(*snapshotPath))
+	logger.Println("db type:", rawdb.PreexistingDatabase(*snapshotPath))
 	db, err := rawdb.NewPebbleDBDatabase(*snapshotPath, 1024, 2000, "eth/db", true, false)
 	if err != nil {
 		logger.Fatalf("opening pebbledb: %s", err)
 	}
 
 	head := rawdb.ReadHeadBlock(db)
-	// if head == nil {
-	// 	logger.Fatalf("get head block: %s", err)
-	// }
+	if head == nil {
+		logger.Fatalf("get head block: %s", err)
+	}
+	logger.Println("head block:", head.Number())
 
 	// var PathDefaults = &trie.Config{
 	// 	Preimages: false,
@@ -50,12 +51,9 @@ func main() {
 	// 	PathDB:    pathdb.Defaults,
 	// }
 
-	// block 18940088
-	stateRoot := common.HexToHash("0xe9b82dbe55fa31f995b0ededbeeafc8a0747773f5dc36b2921bd149bc86c5fbc")
-
 	statedb := state.NewDatabase(db)
 	triedb := statedb.TrieDB()
-	t, _ := state.Database.OpenTrie(statedb, stateRoot)
+	t, _ := state.Database.OpenTrie(statedb, head.Root())
 	// triedb := trie.NewDatabase(db, trie.HashDefaults)
 
 	// t, err := trie.NewStateTrie(trie.StateTrieID(stateRoot), triedb)
