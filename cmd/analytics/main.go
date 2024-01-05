@@ -31,7 +31,8 @@ func main() {
 		log.Fatalf("--chaindata path can't be empty")
 	}
 
-	db, err := rawdb.NewLevelDBDatabase(*snapshotPath, 1024, 2000, "", true)
+	fmt.Println(rawdb.PreexistingDatabase(*snapshotPath))
+	db, err := rawdb.NewPebbleDBDatabase(*snapshotPath, 1024, 2000, "eth/db", true, false)
 	if err != nil {
 		log.Fatalf("opening leveldb db: %s", err)
 	}
