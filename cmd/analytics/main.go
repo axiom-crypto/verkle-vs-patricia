@@ -127,7 +127,7 @@ func analyzeTries(ctx context.Context, trieRoot common.Hash, t state.Trie, tried
 			*/
 		}
 
-		if time.Since(lastReport) > time.Minute*15 {
+		if time.Since(lastReport) > time.Minute {
 			// State Trie stdout reports.
 			fmt.Printf("Walked %d (EOA + SC) accounts:\n", leafNodes)
 			histStateTrieDepths.Print(os.Stdout)
