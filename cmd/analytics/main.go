@@ -34,10 +34,11 @@ func main() {
 	fmt.Println(rawdb.PreexistingDatabase(*snapshotPath))
 	db, err := rawdb.NewPebbleDBDatabase(*snapshotPath, 1024, 2000, "eth/db", true, false)
 	if err != nil {
-		log.Fatalf("opening leveldb db: %s", err)
+		log.Fatalf("opening pebbledb: %s", err)
 	}
 
 	head := rawdb.ReadHeadBlock(db)
+	head = rawdb.ReadBlock(db, head.ParentHash(), head.NumberU64()-1)
 	if head == nil {
 		log.Fatalf("get head block: %s", err)
 	}
