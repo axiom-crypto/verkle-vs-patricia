@@ -96,7 +96,7 @@ func analyzeTries(ctx context.Context, trieRoot common.Hash, t *trie.StateTrie, 
 					log.Fatalf("failed to open storage trie: %s", err)
 				}
 
-				var storageTriesNumSlots, storageSlotCumDepth int64
+				var storageTriesNumSlots int64
 				storageIter, stErr := storageTrie.NodeIterator(nil)
 				for storageIter.Next(true) {
 					if storageIter.Leaf() {
