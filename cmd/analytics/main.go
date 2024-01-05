@@ -12,13 +12,15 @@ import (
 	"time"
 
 	"github.com/axiom-crypto/verkle-vs-patricia/histogram"
+	"github.com/jsign/go-ethereum/core/state"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/rawdb"
+
+	// "github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/trie"
-	"github.com/ethereum/go-ethereum/trie/triedb/pathdb"
 )
 
 var emptyRoot = common.HexToHash("56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421")
@@ -42,16 +44,21 @@ func main() {
 	// 	log.Fatalf("get head block: %s", err)
 	// }
 
-	var PathDefaults = &trie.Config{
-		Preimages: false,
-		IsVerkle:  false,
-		PathDB:    pathdb.Defaults,
-	}
-	triedb := trie.NewDatabase(db, PathDefaults)
+	// var PathDefaults = &trie.Config{
+	// 	Preimages: false,
+	// 	IsVerkle:  false,
+	// 	PathDB:    pathdb.Defaults,
+	// }
 
 	// block 18940088
 	stateRoot := common.HexToHash("0xe9b82dbe55fa31f995b0ededbeeafc8a0747773f5dc36b2921bd149bc86c5fbc")
-	t, err := trie.NewStateTrie(trie.StateTrieID(stateRoot), triedb)
+
+	statedb := state.NewDatabase(db)
+	triedb := statedb.TrieDB()
+	t, _ := state.Database.OpenTrie(statedb, stateRoot)
+	// triedb := trie.NewDatabase(db, trie.HashDefaults)
+
+	// t, err := trie.NewStateTrie(trie.StateTrieID(stateRoot), triedb)
 	if err != nil {
 		log.Fatalf("new state trie: %s", err)
 	}
@@ -63,7 +70,7 @@ func main() {
 	analyzeTries(ctx, head.Root(), t, triedb)
 }
 
-func analyzeTries(ctx context.Context, trieRoot common.Hash, t *trie.StateTrie, triedb *trie.Database) {
+func analyzeTries(ctx context.Context, trieRoot common.Hash, t state.Trie, triedb *trie.Database) {
 	var leafNodes int
 	var storageTries int64
 	lastReport := time.Now()
