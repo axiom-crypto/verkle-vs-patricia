@@ -145,7 +145,7 @@ func analyzeTries(ctx context.Context, trieRoot common.Hash, t state.Trie, tried
 
 			// Persist .csv.
 			// State Trie.
-			histStateTrieDepths.ToCSV("statetrie_depth.csv")
+			histStateTrieDepths.ToCSV("statetrie_depth2.csv")
 			// histStatePathTypes.ToCSV("statetrie_pathtypes.csv")
 
 			// Storage Tries.
