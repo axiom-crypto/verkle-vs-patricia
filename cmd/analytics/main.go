@@ -12,12 +12,10 @@ import (
 	"time"
 
 	"github.com/axiom-crypto/verkle-vs-patricia/histogram"
-	"github.com/jsign/go-ethereum/core/state"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/rawdb"
-
-	// "github.com/ethereum/go-ethereum/core/state"
+	"github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/trie"
@@ -26,22 +24,24 @@ import (
 var emptyRoot = common.HexToHash("56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421")
 
 func main() {
+	logger := log.New(os.Stderr, "", log.LstdFlags)
+
 	snapshotPath := flag.String("chaindata", "", "Path of geth snapshot folder")
 	flag.Parse()
 
 	if len(*snapshotPath) == 0 {
-		log.Fatalf("--chaindata path can't be empty")
+		logger.Fatalf("--chaindata path can't be empty")
 	}
 
 	fmt.Println(rawdb.PreexistingDatabase(*snapshotPath))
 	db, err := rawdb.NewPebbleDBDatabase(*snapshotPath, 1024, 2000, "eth/db", true, false)
 	if err != nil {
-		log.Fatalf("opening pebbledb: %s", err)
+		logger.Fatalf("opening pebbledb: %s", err)
 	}
 
 	head := rawdb.ReadHeadBlock(db)
 	// if head == nil {
-	// 	log.Fatalf("get head block: %s", err)
+	// 	logger.Fatalf("get head block: %s", err)
 	// }
 
 	// var PathDefaults = &trie.Config{
@@ -60,7 +60,7 @@ func main() {
 
 	// t, err := trie.NewStateTrie(trie.StateTrieID(stateRoot), triedb)
 	if err != nil {
-		log.Fatalf("new state trie: %s", err)
+		logger.Fatalf("new state trie: %s", err)
 	}
 
 	ctx := context.Background()
@@ -71,6 +71,7 @@ func main() {
 }
 
 func analyzeTries(ctx context.Context, trieRoot common.Hash, t state.Trie, triedb *trie.Database) {
+	logger := log.New(os.Stderr, "trie", log.LstdFlags)
 	var leafNodes int
 	var storageTries int64
 	lastReport := time.Now()
@@ -96,14 +97,14 @@ func analyzeTries(ctx context.Context, trieRoot common.Hash, t state.Trie, tried
 			// Storage tries analysis.
 			var acc types.StateAccount
 			if err := rlp.DecodeBytes(iter.LeafBlob(), &acc); err != nil {
-				log.Fatalf("invalid account encountered during traversal: %s", err)
+				logger.Fatalf("invalid account encountered during traversal: %s", err)
 			}
 			if acc.Root != emptyRoot {
 				storageTries++
 				id := trie.StorageTrieID(trieRoot, common.BytesToHash(iter.LeafKey()), acc.Root)
 				storageTrie, err := trie.NewStateTrie(id, triedb)
 				if err != nil {
-					log.Fatalf("failed to open storage trie: %s", err)
+					logger.Fatalf("failed to open storage trie: %s", err)
 				}
 
 				var storageTriesNumSlots int64
@@ -123,7 +124,7 @@ func analyzeTries(ctx context.Context, trieRoot common.Hash, t state.Trie, tried
 				histStorageTriesNumSlots.Observe(storageTriesNumSlots)
 
 				if storageIter.Error() != nil {
-					log.Fatalf("Failed to traverse storage trie: %s", err)
+					logger.Fatalf("Failed to traverse storage trie: %s", err)
 				}
 			}
 		}
@@ -160,7 +161,7 @@ func analyzeTries(ctx context.Context, trieRoot common.Hash, t state.Trie, tried
 		}
 	}
 	if iter.Error() != nil {
-		log.Fatalf("iterating trie: %s", iter.Error())
+		logger.Fatalf("iterating trie: %s", iter.Error())
 	}
 }
 
