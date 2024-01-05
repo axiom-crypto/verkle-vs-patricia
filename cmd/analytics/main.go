@@ -73,7 +73,7 @@ func analyzeTries(ctx context.Context, trieRoot common.Hash, t *trie.StateTrie, 
 	histStorageTrieDepths := histogram.New[int]("Storage Trie - Depths")
 	histStorageTriesNumSlots := histogram.New[int64]("Storage Trie - Number of used slots")
 
-	iter, nodeErr := t.NodeIterator(nil)
+	iter, _ := t.NodeIterator(nil)
 	for iter.Next(true) {
 		if iter.Leaf() {
 			leafNodes++
@@ -97,7 +97,7 @@ func analyzeTries(ctx context.Context, trieRoot common.Hash, t *trie.StateTrie, 
 				}
 
 				var storageTriesNumSlots int64
-				storageIter, stErr := storageTrie.NodeIterator(nil)
+				storageIter, _ := storageTrie.NodeIterator(nil)
 				for storageIter.Next(true) {
 					if storageIter.Leaf() {
 						if ctx.Err() != nil {

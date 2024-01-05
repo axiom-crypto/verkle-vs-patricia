@@ -69,8 +69,13 @@ func (h *Histogram[T]) sortedKeys() []T {
 	for k := range h.buckets {
 		keys = append(keys, k)
 	}
-	slices.SortFunc(keys, func(a, b T) bool {
-		return h.buckets[a] > h.buckets[b]
+	slices.SortFunc(keys, func(a, b T) int {
+		if h.buckets[a] > h.buckets[b] {
+			return 1
+		} else if h.buckets[a] < h.buckets[b] {
+			return -1
+		}
+		return 0
 	})
 	return keys
 }
