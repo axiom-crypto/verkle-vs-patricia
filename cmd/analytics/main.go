@@ -38,10 +38,9 @@ func main() {
 	}
 
 	head := rawdb.ReadHeadBlock(db)
-	head = rawdb.ReadBlock(db, head.ParentHash(), head.NumberU64()-1)
-	if head == nil {
-		log.Fatalf("get head block: %s", err)
-	}
+	// if head == nil {
+	// 	log.Fatalf("get head block: %s", err)
+	// }
 
 	var PathDefaults = &trie.Config{
 		Preimages: false,
@@ -50,7 +49,9 @@ func main() {
 	}
 	triedb := trie.NewDatabase(db, PathDefaults)
 
-	t, err := trie.NewStateTrie(trie.StateTrieID(head.Root()), triedb)
+	// block 18940088
+	stateRoot := common.HexToHash("0xe9b82dbe55fa31f995b0ededbeeafc8a0747773f5dc36b2921bd149bc86c5fbc")
+	t, err := trie.NewStateTrie(trie.StateTrieID(stateRoot), triedb)
 	if err != nil {
 		log.Fatalf("new state trie: %s", err)
 	}
