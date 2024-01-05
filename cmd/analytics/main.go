@@ -11,12 +11,14 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/jsign/go-ethereum/common"
-	"github.com/jsign/go-ethereum/core/rawdb"
-	"github.com/jsign/go-ethereum/core/types"
-	"github.com/jsign/go-ethereum/rlp"
-	"github.com/jsign/go-ethereum/trie"
-	"github.com/jsign/verkle-vs-patricia/cmd/analytics/histogram"
+	"github.com/axiom-crypto/verkle-vs-patricia/histogram"
+
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/rawdb"
+	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/rlp"
+	"github.com/ethereum/go-ethereum/trie"
+	"github.com/ethereum/go-ethereum/trie/triedb/pathdb"
 )
 
 var emptyRoot = common.HexToHash("56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421")
@@ -39,7 +41,12 @@ func main() {
 		log.Fatalf("get head block: %s", err)
 	}
 
-	triedb := trie.NewDatabase(db)
+	var PathDefaults = &trie.Config{
+		Preimages: false,
+		IsVerkle:  false,
+		PathDB:    pathdb.Defaults,
+	}
+	triedb := trie.NewDatabase(db, PathDefaults)
 
 	t, err := trie.NewStateTrie(trie.StateTrieID(head.Root()), triedb)
 	if err != nil {
@@ -60,21 +67,21 @@ func analyzeTries(ctx context.Context, trieRoot common.Hash, t *trie.StateTrie, 
 
 	// Histograms for the State Trie.
 	histStateTrieDepths := histogram.New[int]("State Trie - Depths")
-	histStatePathTypes := histogram.New[string]("State Trie - Path types")
+	// histStatePathTypes := histogram.New[string]("State Trie - Path types")
 
 	// Histograms for Storage Tries.
 	histStorageTrieDepths := histogram.New[int]("Storage Trie - Depths")
 	histStorageTriesNumSlots := histogram.New[int64]("Storage Trie - Number of used slots")
 
-	iter := t.NodeIterator(nil)
+	iter, nodeErr := t.NodeIterator(nil)
 	for iter.Next(true) {
 		if iter.Leaf() {
 			leafNodes++
 
 			// State Trie analysis.
-			pathNodeTypes := iter.Stack()
-			histStateTrieDepths.Observe(len(pathNodeTypes) - 1)
-			histStatePathTypes.Observe(toShortPathTypes(pathNodeTypes))
+			leafProof := iter.LeafProof()
+			histStateTrieDepths.Observe(len(leafProof))
+			// histStatePathTypes.Observe(toShortPathTypes(pathNodeTypes))
 
 			// Storage tries analysis.
 			var acc types.StateAccount
@@ -90,18 +97,19 @@ func analyzeTries(ctx context.Context, trieRoot common.Hash, t *trie.StateTrie, 
 				}
 
 				var storageTriesNumSlots, storageSlotCumDepth int64
-				storageIter := storageTrie.NodeIterator(nil)
+				storageIter, stErr := storageTrie.NodeIterator(nil)
 				for storageIter.Next(true) {
 					if storageIter.Leaf() {
 						if ctx.Err() != nil {
 							break
 						}
 						storageTriesNumSlots += 1
-						pathNodeTypes := storageIter.Stack()
-						storageSlotCumDepth += int64(len(pathNodeTypes) - 1)
+						leafProof := storageIter.LeafProof()
+						histStorageTrieDepths.Observe(len(leafProof))
+						// storageSlotCumDepth += int64(len(pathNodeTypes) - 1)
 					}
 				}
-				histStorageTrieDepths.Observe(int(storageSlotCumDepth / storageTriesNumSlots))
+				// histStorageTrieDepths.Observe(int(storageSlotCumDepth / storageTriesNumSlots))
 				histStorageTriesNumSlots.Observe(storageTriesNumSlots)
 
 				if storageIter.Error() != nil {
@@ -114,7 +122,7 @@ func analyzeTries(ctx context.Context, trieRoot common.Hash, t *trie.StateTrie, 
 			// State Trie stdout reports.
 			fmt.Printf("Walked %d (EOA + SC) accounts:\n", leafNodes)
 			histStateTrieDepths.Print(os.Stdout)
-			histStatePathTypes.Print(os.Stdout)
+			// histStatePathTypes.Print(os.Stdout)
 			fmt.Println()
 
 			// Storage tries stdout reports.
@@ -129,7 +137,7 @@ func analyzeTries(ctx context.Context, trieRoot common.Hash, t *trie.StateTrie, 
 			// Persist .csv.
 			// State Trie.
 			histStateTrieDepths.ToCSV("statetrie_depth.csv")
-			histStatePathTypes.ToCSV("statetrie_pathtypes.csv")
+			// histStatePathTypes.ToCSV("statetrie_pathtypes.csv")
 
 			// Storage Tries.
 			histStorageTrieDepths.ToCSV("storagetrie_depth.csv")
