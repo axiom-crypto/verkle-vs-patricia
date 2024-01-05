@@ -16,8 +16,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/rawdb"
 	"github.com/ethereum/go-ethereum/core/state"
-	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/trie"
 )
 
@@ -71,7 +69,7 @@ func main() {
 func analyzeTries(ctx context.Context, trieRoot common.Hash, t state.Trie, triedb *trie.Database) {
 	logger := log.New(os.Stderr, "trie", log.LstdFlags)
 	var leafNodes int
-	var storageTries int64
+	// var storageTries int64
 	lastReport := time.Now()
 
 	// Histograms for the State Trie.
@@ -79,8 +77,8 @@ func analyzeTries(ctx context.Context, trieRoot common.Hash, t state.Trie, tried
 	// histStatePathTypes := histogram.New[string]("State Trie - Path types")
 
 	// Histograms for Storage Tries.
-	histStorageTrieDepths := histogram.New[int]("Storage Trie - Depths")
-	histStorageTriesNumSlots := histogram.New[int64]("Storage Trie - Number of used slots")
+	// histStorageTrieDepths := histogram.New[int]("Storage Trie - Depths")
+	// histStorageTriesNumSlots := histogram.New[int64]("Storage Trie - Number of used slots")
 
 	iter, _ := t.NodeIterator(nil)
 	for iter.Next(true) {
@@ -92,39 +90,41 @@ func analyzeTries(ctx context.Context, trieRoot common.Hash, t state.Trie, tried
 			histStateTrieDepths.Observe(len(leafProof))
 			// histStatePathTypes.Observe(toShortPathTypes(pathNodeTypes))
 
-			// Storage tries analysis.
-			var acc types.StateAccount
-			if err := rlp.DecodeBytes(iter.LeafBlob(), &acc); err != nil {
-				logger.Fatalf("invalid account encountered during traversal: %s", err)
-			}
-			if acc.Root != emptyRoot {
-				storageTries++
-				id := trie.StorageTrieID(trieRoot, common.BytesToHash(iter.LeafKey()), acc.Root)
-				storageTrie, err := trie.NewStateTrie(id, triedb)
-				if err != nil {
-					logger.Fatalf("failed to open storage trie: %s", err)
+			/*
+				// Storage tries analysis.
+				var acc types.StateAccount
+				if err := rlp.DecodeBytes(iter.LeafBlob(), &acc); err != nil {
+					logger.Fatalf("invalid account encountered during traversal: %s", err)
 				}
+				if acc.Root != emptyRoot {
+					storageTries++
+					id := trie.StorageTrieID(trieRoot, common.BytesToHash(iter.LeafKey()), acc.Root)
+					storageTrie, err := trie.NewStateTrie(id, triedb)
+					if err != nil {
+						logger.Fatalf("failed to open storage trie: %s", err)
+					}
 
-				var storageTriesNumSlots int64
-				storageIter, _ := storageTrie.NodeIterator(nil)
-				for storageIter.Next(true) {
-					if storageIter.Leaf() {
-						if ctx.Err() != nil {
-							break
+					var storageTriesNumSlots int64
+					storageIter, _ := storageTrie.NodeIterator(nil)
+					for storageIter.Next(true) {
+						if storageIter.Leaf() {
+							if ctx.Err() != nil {
+								break
+							}
+							storageTriesNumSlots += 1
+							leafProof := storageIter.LeafProof()
+							histStorageTrieDepths.Observe(len(leafProof))
+							// storageSlotCumDepth += int64(len(pathNodeTypes) - 1)
 						}
-						storageTriesNumSlots += 1
-						leafProof := storageIter.LeafProof()
-						histStorageTrieDepths.Observe(len(leafProof))
-						// storageSlotCumDepth += int64(len(pathNodeTypes) - 1)
+					}
+					// histStorageTrieDepths.Observe(int(storageSlotCumDepth / storageTriesNumSlots))
+					histStorageTriesNumSlots.Observe(storageTriesNumSlots)
+
+					if storageIter.Error() != nil {
+						logger.Fatalf("Failed to traverse storage trie: %s", err)
 					}
 				}
-				// histStorageTrieDepths.Observe(int(storageSlotCumDepth / storageTriesNumSlots))
-				histStorageTriesNumSlots.Observe(storageTriesNumSlots)
-
-				if storageIter.Error() != nil {
-					logger.Fatalf("Failed to traverse storage trie: %s", err)
-				}
-			}
+			*/
 		}
 
 		if time.Since(lastReport) > time.Minute*15 {
@@ -134,10 +134,10 @@ func analyzeTries(ctx context.Context, trieRoot common.Hash, t state.Trie, tried
 			// histStatePathTypes.Print(os.Stdout)
 			fmt.Println()
 
-			// Storage tries stdout reports.
-			fmt.Printf("Walked %d Storage Tries:\n", storageTries)
-			histStorageTrieDepths.Print(os.Stdout)
-			histStorageTriesNumSlots.Print(os.Stdout)
+			// // Storage tries stdout reports.
+			// fmt.Printf("Walked %d Storage Tries:\n", storageTries)
+			// histStorageTrieDepths.Print(os.Stdout)
+			// histStorageTriesNumSlots.Print(os.Stdout)
 
 			fmt.Printf("-----\n\n")
 
@@ -149,8 +149,8 @@ func analyzeTries(ctx context.Context, trieRoot common.Hash, t state.Trie, tried
 			// histStatePathTypes.ToCSV("statetrie_pathtypes.csv")
 
 			// Storage Tries.
-			histStorageTrieDepths.ToCSV("storagetrie_depth.csv")
-			histStorageTriesNumSlots.ToCSV("storagetrie_numslots.csv")
+			// histStorageTrieDepths.ToCSV("storagetrie_depth.csv")
+			// histStorageTriesNumSlots.ToCSV("storagetrie_numslots.csv")
 
 		}
 
