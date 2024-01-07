@@ -71,6 +71,7 @@ func analyzeTries(ctx context.Context, trieRoot common.Hash, statedb state.Datab
 	// histStatePathTypes := histogram.New[string]("State Trie - Path types")
 
 	_addresses := [...]string{
+		"0xdAC17F958D2ee523a2206206994597C13D831ec7", // USDT
 		"0x06450dee7fd2fb8e39061434babcfc05599a6fb8", // XEN
 		"0x5acc84a3e955bdd76467d3348077d003f00ffb97", // Forsage
 		"0x00000000006c3852cbef3e08e8df289169ede581", // Seaport 1.1
