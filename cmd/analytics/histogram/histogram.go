@@ -51,10 +51,10 @@ func (h *Histogram[T]) ToCSV(filename string) error {
 	var sb strings.Builder
 	for _, k := range h.sortedKeys() {
 		ratio := float64(h.buckets[k]) / float64(h.total) * 100
-		if ratio < 0.01 {
-			continue
-		}
-		sb.WriteString(fmt.Sprintf("%v,%.02f\n", k, ratio))
+		// if ratio < 0.01 {
+		// 	continue
+		// }
+		sb.WriteString(fmt.Sprintf("%v: %.02f%% (%d)\n", k, ratio, h.buckets[k]))
 	}
 	if err := os.WriteFile(filename, []byte(sb.String()), 0o755); err != nil {
 		return fmt.Errorf("writing to file: %s", err)
